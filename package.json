@@ -1,0 +1,35 @@
+{
+  "name": "temporal-workflow-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Generic Temporal-based workflow engine with outbox pattern",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json",
+    "dev:api": "ts-node --project tsconfig.json src/api/index.ts",
+    "dev:worker": "ts-node --project tsconfig.json src/worker/index.ts",
+    "start:api": "node lib/api/index.js",
+    "start:worker": "node lib/worker/index.js",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@temporalio/activity": "^1.11.0",
+    "@temporalio/client": "^1.11.0",
+    "@temporalio/worker": "^1.11.0",
+    "@temporalio/workflow": "^1.11.0",
+    "express": "^5.0.0",
+    "mongodb": "^6.0.0",
+    "pino": "^9.0.0",
+    "pino-http": "^10.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}
