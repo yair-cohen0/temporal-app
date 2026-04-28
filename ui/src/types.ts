@@ -15,31 +15,22 @@ export interface WorkflowDescribeResponse {
 export interface SignalPayload {
   stepId: string;
   actorId: string;
-  decision: 'approve' | 'reject' | 'sign';
+  decision: string;
   reason?: string;
   payload?: unknown;
   timestamp: string;
 }
 
-export type StepType = 'groupApproval' | 'rankApproval' | 'signature' | 'endpoint';
-export type StepStatus = 'waiting' | 'approved' | 'rejected' | 'signed' | 'timed-out' | 'endpoint';
-
-export interface StepMeta {
-  groupId?: string;
-  rank?: string;
-  userId?: string;
-  timeoutMs?: number;
-  resource?: unknown;
-  message?: string;
-}
+export type StepStatus = 'waiting' | 'completed' | 'timed-out';
 
 export interface Step {
   stepId: string;
-  type: StepType;
+  actionType: string;
   status: StepStatus;
-  meta: StepMeta;
+  meta: Record<string, unknown>;
   signal?: SignalPayload;
   scheduledAt?: string;
+  awaitingSignal: boolean;
 }
 
 export interface RawPayload {

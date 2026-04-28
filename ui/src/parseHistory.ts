@@ -1,4 +1,4 @@
-import type { RawHistoryEvent, RawPayload, Step, StepStatus, SignalPayload } from './types';
+import type { RawHistoryEvent, RawPayload, Step, SignalPayload } from './types';
 
 // Temporal gRPC proto event type numbers
 const ACTIVITY_TASK_SCHEDULED = 12;
@@ -69,28 +69,22 @@ function decodePayload(rawPayload: RawPayload | undefined): Record<string, unkno
   return null;
 }
 
-function isSignalPayload(
-  obj: Record<string, unknown> | null
-): obj is Record<string, unknown> & SignalPayload {
+function isSignalPayload(obj: unknown): obj is SignalPayload {
   return (
     obj !== null &&
-    typeof obj.stepId === 'string' &&
-    typeof obj.actorId === 'string' &&
-    (obj.decision === 'approve' || obj.decision === 'reject' || obj.decision === 'sign')
+    typeof obj === 'object' &&
+    typeof (obj as Record<string, unknown>).stepId === 'string' &&
+    typeof (obj as Record<string, unknown>).actorId === 'string' &&
+    typeof (obj as Record<string, unknown>).decision === 'string' &&
+    (obj as Record<string, unknown>).decision !== ''
   );
-}
-
-function decisionToStatus(decision: 'approve' | 'reject' | 'sign'): StepStatus {
-  if (decision === 'approve') return 'approved';
-  if (decision === 'reject') return 'rejected';
-  return 'signed';
 }
 
 function applyPending(step: Step, pending: Map<string, SignalPayload>): void {
   const signal = pending.get(step.stepId);
   if (signal) {
     step.signal = signal;
-    step.status = decisionToStatus(signal.decision);
+    step.status = 'completed';
     pending.delete(step.stepId);
   }
 }
@@ -118,66 +112,38 @@ export function parseHistory(events: RawHistoryEvent[]): Step[] {
       const cfg =
         input && typeof input.actionConfig === 'object' && input.actionConfig !== null
           ? (input.actionConfig as Record<string, unknown>)
-          : null;
+          : {};
 
-      if (actionType === 'awaitGroupApproval' && cfg) {
-        const step: Step = {
-          stepId: String(cfg.stepId ?? ''),
-          type: 'groupApproval',
-          status: 'waiting',
-          meta: {
-            groupId: String(cfg.groupId ?? ''),
-            timeoutMs: Number(cfg.timeoutMs ?? 0),
-          },
-          scheduledAt,
-        };
-        applyPending(step, pendingSignals);
-        steps.push(step);
-        stepIndex.set(step.stepId, step);
-      } else if (actionType === 'awaitRankApproval' && cfg) {
-        const step: Step = {
-          stepId: String(cfg.stepId ?? ''),
-          type: 'rankApproval',
-          status: 'waiting',
-          meta: {
-            rank: String(cfg.rank ?? ''),
-            timeoutMs: Number(cfg.timeoutMs ?? 0),
-          },
-          scheduledAt,
-        };
-        applyPending(step, pendingSignals);
-        steps.push(step);
-        stepIndex.set(step.stepId, step);
-      } else if (actionType === 'awaitSignature' && cfg) {
-        const step: Step = {
-          stepId: String(cfg.stepId ?? ''),
-          type: 'signature',
-          status: 'waiting',
-          meta: {
-            userId: String(cfg.userId ?? ''),
-            timeoutMs: Number(cfg.timeoutMs ?? 0),
-          },
-          scheduledAt,
-        };
-        applyPending(step, pendingSignals);
-        steps.push(step);
-        stepIndex.set(step.stepId, step);
-      } else if (actionType === 'endpoint' && cfg) {
-        steps.push({
-          stepId: `endpoint-${steps.length}`,
-          type: 'endpoint',
-          status: 'endpoint',
-          meta: {
-            resource: cfg.resource,
-            message: cfg.message != null ? String(cfg.message) : undefined,
-          },
-          scheduledAt,
-        });
-      } else if ((actionType === 'writeTimeout' || actionType === 'timeout') && cfg) {
-        const stepId = String(cfg.stepId ?? '');
-        const step = stepIndex.get(stepId);
-        if (step) step.status = 'timed-out';
+      // Fire-and-forget detection: does actionConfig have a stepId?
+      const cfgStepId = cfg && typeof cfg.stepId === 'string' ? cfg.stepId : null;
+      const awaitingSignal = cfgStepId !== null;
+
+      // Timeout events mutate existing steps — don't create a new step
+      if (actionType === 'timeout' || actionType === 'writeTimeout') {
+        if (cfgStepId) {
+          const existing = stepIndex.get(cfgStepId);
+          if (existing) existing.status = 'timed-out';
+        }
+        continue;
       }
+
+      // Use cfgStepId if available, otherwise synthesize from actionType
+      const stepId = awaitingSignal ? cfgStepId! : `${actionType}-${steps.length}`;
+
+      // Extract meta: all of actionConfig except stepId
+      const { stepId: _omit, ...metaRest } = cfg;
+      const step: Step = {
+        stepId,
+        actionType: actionType ?? 'unknown',
+        status: 'waiting',
+        meta: metaRest,
+        scheduledAt,
+        awaitingSignal,
+      };
+
+      applyPending(step, pendingSignals);
+      steps.push(step);
+      if (awaitingSignal) stepIndex.set(stepId, step);
     } else if (type === 'WORKFLOW_EXECUTION_SIGNALED') {
       const attrs = event.workflowExecutionSignaledEventAttributes;
       if (attrs?.signalName === 'stepCompleted') {
@@ -186,7 +152,7 @@ export function parseHistory(events: RawHistoryEvent[]): Step[] {
           const step = stepIndex.get(payload.stepId);
           if (step) {
             step.signal = payload;
-            step.status = decisionToStatus(payload.decision);
+            step.status = 'completed';
           } else {
             // Signal arrived before its activity was scheduled — buffer it
             pendingSignals.set(payload.stepId, payload);

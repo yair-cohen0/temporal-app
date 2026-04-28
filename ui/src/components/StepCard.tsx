@@ -7,39 +7,33 @@ interface Props {
   isLast: boolean;
 }
 
-const STATUS_ICON: Record<Step['status'], string> = {
+const STATUS_ICON: Record<string, string> = {
   waiting: '⏳',
-  approved: '✓',
-  rejected: '✗',
-  signed: '✍',
+  completed: '✓',
   'timed-out': '⏱',
-  endpoint: '⚡',
 };
 
-const STATUS_COLORS: Record<Step['status'], string> = {
+const STATUS_COLORS: Record<string, string> = {
   waiting: 'border-yellow-300 bg-yellow-50',
-  approved: 'border-green-300 bg-green-50',
-  rejected: 'border-red-300 bg-red-50',
-  signed: 'border-blue-300 bg-blue-50',
+  completed: 'border-green-300 bg-green-50',
   'timed-out': 'border-orange-300 bg-orange-50',
-  endpoint: 'border-purple-300 bg-purple-50',
 };
 
-const STATUS_BADGE: Record<Step['status'], string> = {
+const STATUS_BADGE: Record<string, string> = {
   waiting: 'bg-yellow-100 text-yellow-800',
-  approved: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
-  signed: 'bg-blue-100 text-blue-800',
+  completed: 'bg-green-100 text-green-800',
   'timed-out': 'bg-orange-100 text-orange-800',
-  endpoint: 'bg-purple-100 text-purple-800',
 };
 
-const TYPE_LABELS: Record<Step['type'], string> = {
-  groupApproval: 'Group Approval',
-  rankApproval: 'Rank Approval',
-  signature: 'Signature',
-  endpoint: 'Resource Grant',
-};
+function formatActionType(raw: string): string {
+  return raw
+    .replace(/^await/, 'Await')
+    .replace(/([A-Z])/g, ' $1')
+    .trim()
+    .split(/\s+/)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
 
 function MetaRow({ label, value }: { label: string; value: string | number | undefined }) {
   if (value === undefined || value === '') return null;
@@ -59,15 +53,16 @@ function formatMs(ms: number): string {
 }
 
 export function StepCard({ step, workflowId, isLast }: Props) {
-  const cardColor = STATUS_COLORS[step.status];
-  const badgeColor = STATUS_BADGE[step.status];
+  const cardColor = STATUS_COLORS[step.status] ?? 'border-gray-300 bg-gray-50';
+  const badgeColor = STATUS_BADGE[step.status] ?? 'bg-gray-100 text-gray-800';
+  const icon = STATUS_ICON[step.status] ?? '●';
 
   return (
     <div className="flex gap-3">
       {/* Timeline spine */}
       <div className="flex flex-col items-center">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-gray-300 bg-white text-sm">
-          {STATUS_ICON[step.status]}
+          {icon}
         </div>
         {!isLast && <div className="mt-1 flex-1 w-px bg-gray-200" />}
       </div>
@@ -82,7 +77,7 @@ export function StepCard({ step, workflowId, isLast }: Props) {
                 {step.status}
               </span>
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">{TYPE_LABELS[step.type]}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{formatActionType(step.actionType)}</p>
           </div>
           {step.scheduledAt && (
             <span className="text-xs text-gray-400 shrink-0">
@@ -92,13 +87,17 @@ export function StepCard({ step, workflowId, isLast }: Props) {
         </div>
 
         <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5">
-          <MetaRow label="Group" value={step.meta.groupId} />
-          <MetaRow label="Rank" value={step.meta.rank} />
-          <MetaRow label="User" value={step.meta.userId} />
-          {step.meta.timeoutMs ? (
-            <MetaRow label="Timeout" value={formatMs(step.meta.timeoutMs)} />
-          ) : null}
-          {step.meta.message && <MetaRow label="Message" value={step.meta.message} />}
+          {Object.entries(step.meta).map(([key, value]) => {
+            if (value == null || value === '') return null;
+            const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, c => c.toUpperCase());
+            const display =
+              key === 'timeoutMs' && typeof value === 'number'
+                ? formatMs(value)
+                : typeof value === 'object'
+                  ? JSON.stringify(value)
+                  : String(value);
+            return <MetaRow key={key} label={label} value={display} />;
+          })}
         </div>
 
         {step.signal && (
@@ -110,7 +109,9 @@ export function StepCard({ step, workflowId, isLast }: Props) {
           </div>
         )}
 
-        {step.status === 'waiting' && <SignalPanel step={step} workflowId={workflowId} />}
+        {step.awaitingSignal && step.status === 'waiting' && (
+          <SignalPanel step={step} workflowId={workflowId} />
+        )}
       </div>
     </div>
   );

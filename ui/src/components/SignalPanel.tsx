@@ -8,19 +8,11 @@ interface Props {
   workflowId: string;
 }
 
-const DECISION_OPTIONS: Record<Step['type'], Array<SignalPayload['decision']>> = {
-  groupApproval: ['approve', 'reject'],
-  rankApproval: ['approve', 'reject'],
-  signature: ['sign', 'reject'],
-  endpoint: [],
-};
-
 export function SignalPanel({ step, workflowId }: Props) {
   const queryClient = useQueryClient();
-  const options = DECISION_OPTIONS[step.type];
 
   const [actorId, setActorId] = useState('');
-  const [decision, setDecision] = useState<SignalPayload['decision']>(options[0] ?? 'approve');
+  const [decision, setDecision] = useState('');
   const [reason, setReason] = useState('');
 
   const mutation = useMutation({
@@ -31,15 +23,13 @@ export function SignalPanel({ step, workflowId }: Props) {
     },
   });
 
-  if (options.length === 0) return null;
-
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!actorId.trim()) return;
+    if (!actorId.trim() || !decision.trim()) return;
     mutation.mutate({
       stepId: step.stepId,
       actorId: actorId.trim(),
-      decision,
+      decision: decision.trim(),
       reason: reason.trim() || undefined,
       timestamp: new Date().toISOString(),
     });
@@ -73,23 +63,14 @@ export function SignalPanel({ step, workflowId }: Props) {
 
         <div>
           <label className="mb-0.5 block text-xs font-medium text-gray-600">Decision</label>
-          <div className="flex gap-3">
-            {options.map((opt) => (
-              <label
-                key={opt}
-                className="flex cursor-pointer items-center gap-1 text-xs capitalize"
-              >
-                <input
-                  type="radio"
-                  name={`decision-${step.stepId}`}
-                  value={opt}
-                  checked={decision === opt}
-                  onChange={() => setDecision(opt)}
-                />
-                {opt}
-              </label>
-            ))}
-          </div>
+          <input
+            type="text"
+            value={decision}
+            onChange={(e) => setDecision(e.target.value)}
+            placeholder="e.g. approve, reject, sign…"
+            className="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-400 focus:outline-none"
+            required
+          />
         </div>
 
         <div>
@@ -106,7 +87,7 @@ export function SignalPanel({ step, workflowId }: Props) {
 
         <button
           type="submit"
-          disabled={mutation.isPending || !actorId.trim()}
+          disabled={mutation.isPending || !actorId.trim() || !decision.trim()}
           className="self-start rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
           {mutation.isPending ? 'Sending…' : 'Send Signal'}
