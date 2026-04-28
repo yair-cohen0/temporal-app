@@ -130,3 +130,63 @@ Several `// eslint-disable-next-line @typescript-eslint/no-explicit-any` comment
 - Signal/query args spreading — `unknown[]` can't be spread into typed rest params
 
 These are intentional escape hatches, not lazy typing. The runtime behavior is correct.
+
+## ui/ — Workflow Viewer React App
+
+A standalone Vite + React + TypeScript app in `ui/`. Its own `package.json`; completely independent of the backend build. Run with `cd ui && npm run dev` (port 5173).
+
+### Dev proxy — no CORS needed
+
+`ui/vite.config.ts` proxies `/api` → `http://localhost:3000`. Nothing needs to change in the Express server for local development. For a production deployment, add a `cors` middleware to the Express app.
+
+### History parsing — how steps are reconstructed
+
+The UI has no direct MongoDB access. It reconstructs the step timeline entirely from the Temporal event history returned by `GET /api/v1/workflows/:workflowId/history`.
+
+Key facts about the raw history response:
+- Event types arrive as strings like `"EVENT_TYPE_ACTIVITY_TASK_SCHEDULED"`.
+- Payload `data` fields are **base64-encoded JSON** (Temporal's default codec). Decoded with `atob()` in the browser.
+- Each activity's input is a full `OutboxDocInput` object (`{ workflowId, runId, actionId, actionType, actionConfig }`). Step parameters (stepId, groupId, rank, userId, timeoutMs) live inside `actionConfig`, **not** at the top level.
+
+Parser logic (`ui/src/parseHistory.ts`):
+1. For each `ActivityTaskScheduled` event, decode the input and read `input.actionType` as the discriminator (not `activityType.name` — see below). Build a `Step` from `input.actionConfig`.
+2. For each `WorkflowExecutionSignaled` event where `signalName === 'stepCompleted'`, decode the payload and update the matching step's status in a `stepId → Step` map.
+3. For `actionType === 'timeout'`, mark the matching step as `timed-out`.
+
+### Why actionType, not activityType.name
+
+The Temporal history records the **registered activity name** as `activityType.name`. The current worker registers names like `awaitRankApproval`, `awaitSignature`, etc. But older workflow runs may have been started when the worker registered the single function directly as `writeOutboxDocument`. In that case every activity in the history has `activityType.name === "writeOutboxDocument"`.
+
+Using `input.actionType` (from the decoded payload) as the discriminator is reliable in all cases because it is set by the workflow code at call time, not by the worker registration.
+
+### TanStack Query v5 — refetchInterval temporal dead zone
+
+TanStack Query v5 calls the `refetchInterval` callback **during `useQuery` initialization** (inside the `QueryObserver` constructor). This means a pattern like:
+
+```ts
+const myQuery = useQuery({ refetchInterval: () => myQuery.data ? ... });
+//                                                  ^ TDZ: myQuery not assigned yet
+```
+
+…throws `ReferenceError: Cannot access 'myQuery' before initialization`.
+
+Fix applied in `ui/src/App.tsx`: the workflow query uses the `query` argument passed to the callback (`query.state.data`) to avoid referencing the hook return value. The history query derives a plain boolean `isPolling` from `workflowQuery.data` (already initialized) and passes it as a static value.
+
+### Outbox activity input shape (for future UI work)
+
+```ts
+// What attrs.input.payloads[0].data decodes to:
+{
+  workflowId: string,
+  runId: string,
+  actionId: string,
+  actionType: 'awaitGroupApproval' | 'awaitRankApproval' | 'awaitSignature' | 'endpoint' | 'timeout' | ...,
+  actionConfig: {
+    // awaitGroupApproval: { stepId, groupId, timeoutMs }
+    // awaitRankApproval:  { stepId, rank, timeoutMs }
+    // awaitSignature:     { stepId, userId, timeoutMs }
+    // endpoint:           { resource, message? }
+    // timeout:            { stepId, originalActionType }
+  }
+}
+```

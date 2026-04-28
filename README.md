@@ -137,6 +137,31 @@ export async function exampleApprovalFlow(input: ExampleApprovalInput): Promise<
 }
 ```
 
+## Workflow Viewer UI
+
+A standalone React app (`ui/`) for inspecting and advancing workflow executions directly from a browser — no separate tooling required.
+
+**Start it:**
+```bash
+cd ui
+npm install   # first time only
+npm run dev   # http://localhost:5173
+```
+
+> The API server (`npm run dev:api`) must be running. The UI dev server proxies `/api` → `localhost:3000`, so no CORS configuration is needed in development.
+
+**What it does:**
+
+1. Enter any `workflowId` in the search field. The ID is saved in the URL hash (`#workflowId`) so you can bookmark or share links.
+2. The header shows workflow status (RUNNING / COMPLETED / FAILED / etc.), type, task queue, start/close times, and event count.
+3. The **Step Timeline** reconstructs every human-in-the-loop step from the Temporal event history:
+   - Completed steps show who acted and what decision they made.
+   - The currently **waiting** step shows an inline **Advance Step** form with Actor ID, Decision (approve / reject / sign), and an optional reason field.
+4. Clicking **Send Signal** posts a `stepCompleted` signal to the API, which forwards it into the workflow. The timeline refreshes automatically.
+5. Polling runs every 3 seconds while the workflow is RUNNING and stops automatically on terminal states (COMPLETED, FAILED, CANCELLED, etc.).
+
+**Tech stack:** Vite + React + TypeScript, TanStack Query v5, Tailwind CSS v3.
+
 ## Architecture Notes
 
 See [CLAUDE.md](./CLAUDE.md) for constraint documentation, ID conventions, idempotency guarantees, and other non-obvious design decisions.
