@@ -1,0 +1,2 @@
+# Dynamic config overrides for development (SQL backend).
+# Empty file — server uses built-in defaults for all settings.

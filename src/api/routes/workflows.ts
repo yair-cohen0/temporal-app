@@ -1,6 +1,5 @@
-import { randomUUID } from 'crypto';
 import { Router, Request, Response } from 'express';
-import { z } from 'zod';
+import { randomUUID } from 'crypto';
 import {
   WorkflowExecutionAlreadyStartedError,
   WorkflowNotFoundError,
@@ -8,111 +7,20 @@ import {
 } from '@temporalio/client';
 import { getWorkflowClient } from '../../shared/temporalClient';
 import { config } from '../../shared/config';
-import { AppError, buildErrorEnvelope } from '../../shared/errors';
+import { buildErrorEnvelope } from '../../shared/errors';
+import { parseBody, parseQuery, param, grpcSvc, notFound } from '../utils';
+import {
+  startBodySchema,
+  signalBodySchema,
+  queryBodySchema,
+  cancelBodySchema,
+  terminateBodySchema,
+  resetBodySchema,
+  listQuerySchema,
+  historyQuerySchema,
+} from '../schemas/workflows';
 
 export const workflowRouter = Router();
-
-// --- Validation schemas ---
-
-// Duration in Temporal is string | number (ms). Accept both.
-const durationSchema = z.union([z.string(), z.number()]);
-
-const retryPolicySchema = z.object({
-  initialInterval: durationSchema.optional(),
-  backoffCoefficient: z.number().optional(),
-  maximumInterval: durationSchema.optional(),
-  maximumAttempts: z.number().int().optional(),
-  nonRetryableErrorTypes: z.array(z.string()).optional(),
-}).optional();
-
-const startBodySchema = z.object({
-  workflowId: z.string().min(1),
-  taskQueue: z.string().min(1),
-  args: z.array(z.unknown()).default([]),
-  searchAttributes: z.record(z.unknown()).optional(),
-  memo: z.record(z.unknown()).optional(),
-  workflowExecutionTimeout: z.string().optional(),
-  workflowRunTimeout: z.string().optional(),
-  workflowTaskTimeout: z.string().optional(),
-  workflowIdReusePolicy: z.string().optional(),
-  retryPolicy: retryPolicySchema,
-  cronSchedule: z.string().optional(),
-});
-
-const signalBodySchema = z.object({
-  runId: z.string().optional(),
-  args: z.array(z.unknown()).default([]),
-});
-
-const queryBodySchema = z.object({
-  runId: z.string().optional(),
-  args: z.array(z.unknown()).default([]),
-});
-
-const cancelBodySchema = z.object({
-  runId: z.string().optional(),
-  reason: z.string().optional(),
-});
-
-const terminateBodySchema = z.object({
-  runId: z.string().optional(),
-  reason: z.string().optional(),
-  details: z.array(z.unknown()).optional(),
-});
-
-const resetBodySchema = z.object({
-  runId: z.string().optional(),
-  eventId: z.number().int().positive(),
-  reason: z.string().min(1),
-  resetReapplyType: z.string().optional(),
-});
-
-const listQuerySchema = z.object({
-  query: z.string().optional(),
-  pageSize: z.coerce.number().int().min(1).max(1000).default(100),
-  nextPageToken: z.string().optional(),
-});
-
-const historyQuerySchema = z.object({
-  runId: z.string().optional(),
-  pageSize: z.coerce.number().int().min(1).max(1000).optional(),
-  nextPageToken: z.string().optional(),
-  eventFilterType: z.enum(['ALL_EVENT', 'CLOSE_EVENT']).optional(),
-});
-
-function parseBody<T>(schema: z.ZodSchema<T>, body: unknown): T {
-  const result = schema.safeParse(body);
-  if (!result.success) {
-    throw new AppError('VALIDATION_ERROR', 'Request validation failed', 400, result.error.issues);
-  }
-  return result.data;
-}
-
-function parseQuery<T>(schema: z.ZodSchema<T>, query: unknown): T {
-  const result = schema.safeParse(query);
-  if (!result.success) {
-    throw new AppError('VALIDATION_ERROR', 'Query parameter validation failed', 400, result.error.issues);
-  }
-  return result.data;
-}
-
-/** Cast req.params value to string (Express v5 types params as string | string[]; route params are always string). */
-function param(req: Request, name: string): string {
-  return req.params[name] as string;
-}
-
-// Raw gRPC service calls have callback/promise overloads that TypeScript cannot resolve cleanly.
-// We use `any` here to escape the overload ambiguity — the actual runtime behaviour is correct.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function grpcSvc(client: Awaited<ReturnType<typeof getWorkflowClient>>): any {
-  return client.workflowService;
-}
-
-function notFound(workflowId: string): AppError {
-  return new AppError('NOT_FOUND', `Workflow "${workflowId}" not found`, 404);
-}
-
-// --- Routes ---
 
 // POST /workflows/:workflowType — Start a workflow
 workflowRouter.post('/:workflowType', async (req: Request, res: Response) => {
@@ -143,8 +51,6 @@ workflowRouter.post('/:workflowType', async (req: Request, res: Response) => {
     req.log?.info({ workflowId: handle.workflowId, workflowType }, 'Workflow started');
     res.status(201).json({ workflowId: handle.workflowId, runId: handle.firstExecutionRunId });
   } catch (err) {
-    // Translate Temporal's duplicate-workflowId error to 409.
-    // Callers can retry with the same workflowId and treat 409 as "already started" — idempotent.
     if (err instanceof WorkflowExecutionAlreadyStartedError) {
       res.status(409).json(buildErrorEnvelope(
         'WORKFLOW_ID_CONFLICT',
@@ -195,7 +101,6 @@ workflowRouter.post('/:workflowId/signals/:signalName', async (req: Request, res
   const handle = client.getHandle(workflowId, body.runId);
 
   try {
-    // args is unknown[] — signal accepts any payload, cast to satisfy overload
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await handle.signal(signalName, ...(body.args as any[]));
     req.log?.info({ workflowId, signalName }, 'Signal sent');
@@ -270,7 +175,6 @@ workflowRouter.get('/', async (req: Request, res: Response) => {
   const client = await getWorkflowClient();
   const svc = grpcSvc(client);
 
-  // Pass query directly to Temporal — no filter DSL invented here.
   const response = await svc.listWorkflowExecutions({
     namespace: config.temporal.namespace,
     query: query.query ?? '',

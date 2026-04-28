@@ -8,8 +8,8 @@
   },
   "scripts": {
     "build": "tsc --project tsconfig.json",
-    "dev:api": "ts-node --project tsconfig.json src/api/index.ts",
-    "dev:worker": "ts-node --project tsconfig.json src/worker/index.ts",
+    "dev:api": "ts-node -r dotenv/config --project tsconfig.json src/api/index.ts",
+    "dev:worker": "ts-node -r dotenv/config --project tsconfig.json src/worker/index.ts",
     "start:api": "node lib/api/index.js",
     "start:worker": "node lib/worker/index.js",
     "lint": "eslint src --ext .ts",
@@ -29,6 +29,7 @@
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/node": "^20.0.0",
+    "dotenv": "^17.4.2",
     "ts-node": "^10.9.0",
     "typescript": "^5.0.0"
   }

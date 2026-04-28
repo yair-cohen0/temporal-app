@@ -21,8 +21,13 @@ async function run(): Promise<void> {
     taskQueue: config.temporal.taskQueue,
     // All files exported from src/workflows/index.ts are automatically registered
     workflowsPath: require.resolve('../workflows'),
-    // Activities registered explicitly — only writeOutboxDocument is exposed
-    activities: { writeOutboxDocument },
+    activities: {
+      awaitGroupApproval: writeOutboxDocument,
+      awaitRankApproval:  writeOutboxDocument,
+      awaitSignature:     writeOutboxDocument,
+      endpoint:           writeOutboxDocument,
+      writeTimeout:       writeOutboxDocument,
+    },
   });
 
   logger.info({ taskQueue: config.temporal.taskQueue }, 'Worker started');

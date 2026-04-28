@@ -5,3 +5,4 @@ lib/
 *.d.ts.map
 .idea/
 .claude/
+files/

@@ -17,13 +17,22 @@ import {
   ApplicationFailure,
 } from '@temporalio/workflow';
 import type { OutboxDocInput, SignalPayload } from './types';
-import type * as acts from './activities';
 
-// Activities are proxied — this call is safe at module scope inside the sandbox.
-// startToCloseTimeout is generous because approval steps can be long-running.
-const { writeOutboxDocument } = proxyActivities<typeof acts>({
-  startToCloseTimeout: '10 minutes',
-});
+// Each step type gets its own activity name so Temporal's event history shows
+// "awaitRankApproval", "awaitSignature", etc. instead of "writeOutboxDocument" for every step.
+const {
+  awaitGroupApproval,
+  awaitRankApproval,
+  awaitSignature,
+  endpoint,
+  writeTimeout,
+} = proxyActivities<{
+  awaitGroupApproval: (doc: OutboxDocInput) => Promise<void>;
+  awaitRankApproval:  (doc: OutboxDocInput) => Promise<void>;
+  awaitSignature:     (doc: OutboxDocInput) => Promise<void>;
+  endpoint:           (doc: OutboxDocInput) => Promise<void>;
+  writeTimeout:       (doc: OutboxDocInput) => Promise<void>;
+}>({ startToCloseTimeout: '10 minutes' });
 
 /**
  * The single signal name all step primitives wait on.
@@ -85,7 +94,7 @@ export async function groupApproverStep(input: GroupApproverStepInput): Promise<
     actionType: 'awaitGroupApproval',
     actionConfig: { stepId, groupId, timeoutMs },
   };
-  await writeOutboxDocument(doc);
+  await awaitGroupApproval(doc);
 
   const resolved = await condition(() => receivedSignals.has(stepId), timeoutMs);
 
@@ -98,11 +107,10 @@ export async function groupApproverStep(input: GroupApproverStepInput): Promise<
       actionType: 'timeout',
       actionConfig: { stepId, originalActionType: 'awaitGroupApproval' },
     };
-    await writeOutboxDocument(timeoutDoc);
+    await writeTimeout(timeoutDoc);
     throw ApplicationFailure.nonRetryable(`Step "${stepId}" timed out`, 'StepTimeoutError');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   return receivedSignals.get(stepId)!;
 }
 
@@ -129,7 +137,7 @@ export async function rankApproverStep(input: RankApproverStepInput): Promise<Si
     actionType: 'awaitRankApproval',
     actionConfig: { stepId, rank, timeoutMs },
   };
-  await writeOutboxDocument(doc);
+  await awaitRankApproval(doc);
 
   const resolved = await condition(() => receivedSignals.has(stepId), timeoutMs);
 
@@ -141,7 +149,7 @@ export async function rankApproverStep(input: RankApproverStepInput): Promise<Si
       actionType: 'timeout',
       actionConfig: { stepId, originalActionType: 'awaitRankApproval' },
     };
-    await writeOutboxDocument(timeoutDoc);
+    await writeTimeout(timeoutDoc);
     throw ApplicationFailure.nonRetryable(`Step "${stepId}" timed out`, 'StepTimeoutError');
   }
 
@@ -172,7 +180,7 @@ export async function signatureStep(input: SignatureStepInput): Promise<SignalPa
     actionType: 'awaitSignature',
     actionConfig: { stepId, userId, timeoutMs },
   };
-  await writeOutboxDocument(doc);
+  await awaitSignature(doc);
 
   const resolved = await condition(() => receivedSignals.has(stepId), timeoutMs);
 
@@ -184,11 +192,10 @@ export async function signatureStep(input: SignatureStepInput): Promise<SignalPa
       actionType: 'timeout',
       actionConfig: { stepId, originalActionType: 'awaitSignature' },
     };
-    await writeOutboxDocument(timeoutDoc);
+    await writeTimeout(timeoutDoc);
     throw ApplicationFailure.nonRetryable(`Step "${stepId}" timed out`, 'StepTimeoutError');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   return receivedSignals.get(stepId)!;
 }
 
@@ -216,5 +223,5 @@ export async function endpointStep(input: EndpointStepInput): Promise<void> {
     actionType: 'endpoint',
     actionConfig: { resource, ...(message !== undefined ? { message } : {}) },
   };
-  await writeOutboxDocument(doc);
+  await endpoint(doc);
 }
