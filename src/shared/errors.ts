@@ -20,7 +20,7 @@ export class AppError extends Error {
     public readonly code: ErrorCode,
     message: string,
     public readonly statusCode: number,
-    public readonly details?: unknown,
+    public readonly details?: unknown
   ) {
     super(message);
     this.name = 'AppError';
@@ -31,7 +31,7 @@ export class AppError extends Error {
 export function buildErrorEnvelope(
   code: ErrorCode,
   message: string,
-  details?: unknown,
+  details?: unknown
 ): ErrorEnvelope {
   return { error: { code, message, ...(details !== undefined ? { details } : {}) } };
 }

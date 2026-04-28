@@ -55,9 +55,7 @@ export function SignalPanel({ step, workflowId }: Props) {
       </p>
 
       {mutation.isError && (
-        <p className="mb-2 text-xs text-red-600">
-          {(mutation.error as Error).message}
-        </p>
+        <p className="mb-2 text-xs text-red-600">{(mutation.error as Error).message}</p>
       )}
 
       <div className="flex flex-col gap-2">
@@ -77,7 +75,10 @@ export function SignalPanel({ step, workflowId }: Props) {
           <label className="mb-0.5 block text-xs font-medium text-gray-600">Decision</label>
           <div className="flex gap-3">
             {options.map((opt) => (
-              <label key={opt} className="flex cursor-pointer items-center gap-1 text-xs capitalize">
+              <label
+                key={opt}
+                className="flex cursor-pointer items-center gap-1 text-xs capitalize"
+              >
                 <input
                   type="radio"
                   name={`decision-${step.stepId}`}
@@ -92,7 +93,9 @@ export function SignalPanel({ step, workflowId }: Props) {
         </div>
 
         <div>
-          <label className="mb-0.5 block text-xs font-medium text-gray-600">Reason (optional)</label>
+          <label className="mb-0.5 block text-xs font-medium text-gray-600">
+            Reason (optional)
+          </label>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}

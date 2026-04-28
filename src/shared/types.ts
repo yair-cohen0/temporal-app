@@ -53,10 +53,7 @@ export interface EndpointConfig {
 export interface TimeoutConfig {
   /** The stepId that timed out. */
   stepId: string;
-  originalActionType:
-    | 'awaitGroupApproval'
-    | 'awaitRankApproval'
-    | 'awaitSignature';
+  originalActionType: 'awaitGroupApproval' | 'awaitRankApproval' | 'awaitSignature';
 }
 
 // --- Discriminated union keyed on actionType ---
@@ -64,13 +61,13 @@ export interface TimeoutConfig {
 // Common fields are repeated (TypeScript can't extract them without losing narrowing).
 
 export type OutboxDoc =
-  | (OutboxDocBase & { actionType: 'createFlow';         actionConfig: CreateFlowConfig })
-  | (OutboxDocBase & { actionType: 'forwardSignal';      actionConfig: ForwardSignalConfig })
+  | (OutboxDocBase & { actionType: 'createFlow'; actionConfig: CreateFlowConfig })
+  | (OutboxDocBase & { actionType: 'forwardSignal'; actionConfig: ForwardSignalConfig })
   | (OutboxDocBase & { actionType: 'awaitGroupApproval'; actionConfig: AwaitGroupApprovalConfig })
-  | (OutboxDocBase & { actionType: 'awaitRankApproval';  actionConfig: AwaitRankApprovalConfig })
-  | (OutboxDocBase & { actionType: 'awaitSignature';     actionConfig: AwaitSignatureConfig })
-  | (OutboxDocBase & { actionType: 'endpoint';           actionConfig: EndpointConfig })
-  | (OutboxDocBase & { actionType: 'timeout';            actionConfig: TimeoutConfig });
+  | (OutboxDocBase & { actionType: 'awaitRankApproval'; actionConfig: AwaitRankApprovalConfig })
+  | (OutboxDocBase & { actionType: 'awaitSignature'; actionConfig: AwaitSignatureConfig })
+  | (OutboxDocBase & { actionType: 'endpoint'; actionConfig: EndpointConfig })
+  | (OutboxDocBase & { actionType: 'timeout'; actionConfig: TimeoutConfig });
 
 // Distributive Omit — preserves discriminant narrowing across all union members.
 // Standard Omit<A|B, K> would flatten the union and lose pairing between actionType and actionConfig.

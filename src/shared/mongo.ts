@@ -27,7 +27,7 @@ export function getOutboxCollection(): Promise<Collection<OutboxDoc>> {
       // createIndex is idempotent: a no-op if the index already exists with the same name and definition.
       await collection.createIndex(
         { actionId: 1 },
-        { unique: true, name: 'outbox_actionId_unique' },
+        { unique: true, name: 'outbox_actionId_unique' }
       );
 
       return collection;

@@ -14,7 +14,12 @@ export function parseBody<T>(schema: z.ZodSchema<T>, body: unknown): T {
 export function parseQuery<T>(schema: z.ZodSchema<T>, query: unknown): T {
   const result = schema.safeParse(query);
   if (!result.success) {
-    throw new AppError('VALIDATION_ERROR', 'Query parameter validation failed', 400, result.error.issues);
+    throw new AppError(
+      'VALIDATION_ERROR',
+      'Query parameter validation failed',
+      400,
+      result.error.issues
+    );
   }
   return result.data;
 }

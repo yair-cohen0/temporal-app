@@ -2,13 +2,15 @@ import { z } from 'zod';
 
 const durationSchema = z.union([z.string(), z.number()]);
 
-export const retryPolicySchema = z.object({
-  initialInterval: durationSchema.optional(),
-  backoffCoefficient: z.number().optional(),
-  maximumInterval: durationSchema.optional(),
-  maximumAttempts: z.number().int().optional(),
-  nonRetryableErrorTypes: z.array(z.string()).optional(),
-}).optional();
+export const retryPolicySchema = z
+  .object({
+    initialInterval: durationSchema.optional(),
+    backoffCoefficient: z.number().optional(),
+    maximumInterval: durationSchema.optional(),
+    maximumAttempts: z.number().int().optional(),
+    nonRetryableErrorTypes: z.array(z.string()).optional(),
+  })
+  .optional();
 
 export const startBodySchema = z.object({
   workflowId: z.string().min(1),

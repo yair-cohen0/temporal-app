@@ -77,9 +77,7 @@ export function StepCard({ step, workflowId, isLast }: Props) {
         <div className="flex items-start justify-between gap-2">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold text-gray-900 font-mono">
-                {step.stepId}
-              </span>
+              <span className="text-sm font-semibold text-gray-900 font-mono">{step.stepId}</span>
               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badgeColor}`}>
                 {step.status}
               </span>
@@ -108,15 +106,11 @@ export function StepCard({ step, workflowId, isLast }: Props) {
             <span className="font-medium text-gray-700">{step.signal.actorId}</span>
             {' → '}
             <span className="capitalize font-medium">{step.signal.decision}</span>
-            {step.signal.reason && (
-              <span className="text-gray-500"> — {step.signal.reason}</span>
-            )}
+            {step.signal.reason && <span className="text-gray-500"> — {step.signal.reason}</span>}
           </div>
         )}
 
-        {step.status === 'waiting' && (
-          <SignalPanel step={step} workflowId={workflowId} />
-        )}
+        {step.status === 'waiting' && <SignalPanel step={step} workflowId={workflowId} />}
       </div>
     </div>
   );

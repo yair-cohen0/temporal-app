@@ -23,10 +23,10 @@ async function run(): Promise<void> {
     workflowsPath: require.resolve('../workflows'),
     activities: {
       awaitGroupApproval: writeOutboxDocument,
-      awaitRankApproval:  writeOutboxDocument,
-      awaitSignature:     writeOutboxDocument,
-      endpoint:           writeOutboxDocument,
-      writeTimeout:       writeOutboxDocument,
+      awaitRankApproval: writeOutboxDocument,
+      awaitSignature: writeOutboxDocument,
+      endpoint: writeOutboxDocument,
+      writeTimeout: writeOutboxDocument,
     },
   });
 

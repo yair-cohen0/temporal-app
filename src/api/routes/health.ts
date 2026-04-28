@@ -10,6 +10,11 @@ healthRouter.get('/', async (_req: Request, res: Response) => {
     await client.workflowService.describeNamespace({ namespace: config.temporal.namespace });
     res.json({ status: 'ok', temporal: { connected: true, namespace: config.temporal.namespace } });
   } catch {
-    res.status(503).json({ status: 'degraded', temporal: { connected: false, namespace: config.temporal.namespace } });
+    res
+      .status(503)
+      .json({
+        status: 'degraded',
+        temporal: { connected: false, namespace: config.temporal.namespace },
+      });
   }
 });

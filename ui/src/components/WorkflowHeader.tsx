@@ -39,18 +39,32 @@ export function WorkflowHeader({ workflow, onRefresh }: Props) {
             <h2 className="font-mono text-sm font-semibold text-gray-900 break-all">
               {workflow.workflowId}
             </h2>
-            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${colorClass}`}>
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${colorClass}`}
+            >
               {status}
             </span>
           </div>
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500">
-            <span>Type: <span className="font-medium text-gray-700">{workflow.type}</span></span>
-            <span>Queue: <span className="font-medium text-gray-700">{workflow.taskQueue}</span></span>
-            <span>Started: <span className="font-medium text-gray-700">{formatDate(workflow.startTime)}</span></span>
+            <span>
+              Type: <span className="font-medium text-gray-700">{workflow.type}</span>
+            </span>
+            <span>
+              Queue: <span className="font-medium text-gray-700">{workflow.taskQueue}</span>
+            </span>
+            <span>
+              Started:{' '}
+              <span className="font-medium text-gray-700">{formatDate(workflow.startTime)}</span>
+            </span>
             {workflow.closeTime && (
-              <span>Closed: <span className="font-medium text-gray-700">{formatDate(workflow.closeTime)}</span></span>
+              <span>
+                Closed:{' '}
+                <span className="font-medium text-gray-700">{formatDate(workflow.closeTime)}</span>
+              </span>
             )}
-            <span>Events: <span className="font-medium text-gray-700">{workflow.historyLength}</span></span>
+            <span>
+              Events: <span className="font-medium text-gray-700">{workflow.historyLength}</span>
+            </span>
           </div>
           <p className="mt-0.5 font-mono text-xs text-gray-400">run: {workflow.runId}</p>
         </div>

@@ -69,7 +69,9 @@ function decodePayload(rawPayload: RawPayload | undefined): Record<string, unkno
   return null;
 }
 
-function isSignalPayload(obj: Record<string, unknown> | null): obj is Record<string, unknown> & SignalPayload {
+function isSignalPayload(
+  obj: Record<string, unknown> | null
+): obj is Record<string, unknown> & SignalPayload {
   return (
     obj !== null &&
     typeof obj.stepId === 'string' &&
@@ -113,9 +115,10 @@ export function parseHistory(events: RawHistoryEvent[]): Step[] {
       // Use input.actionType as the discriminator: it's reliable regardless of whether
       // the worker registered activities under logical names or as writeOutboxDocument.
       const actionType = typeof input?.actionType === 'string' ? input.actionType : activityName;
-      const cfg = input && typeof input.actionConfig === 'object' && input.actionConfig !== null
-        ? (input.actionConfig as Record<string, unknown>)
-        : null;
+      const cfg =
+        input && typeof input.actionConfig === 'object' && input.actionConfig !== null
+          ? (input.actionConfig as Record<string, unknown>)
+          : null;
 
       if (actionType === 'awaitGroupApproval' && cfg) {
         const step: Step = {
@@ -209,8 +212,16 @@ export function resolveStatus(raw: unknown): string {
   };
   if (typeof raw === 'number') return STATUS_NUM[raw] ?? 'UNKNOWN';
   if (typeof raw === 'string') return raw.replace('WORKFLOW_EXECUTION_STATUS_', '');
-  if (raw && typeof raw === 'object' && 'name' in raw) return resolveStatus((raw as Record<string, unknown>).name);
+  if (raw && typeof raw === 'object' && 'name' in raw)
+    return resolveStatus((raw as Record<string, unknown>).name);
   return 'UNKNOWN';
 }
 
-export const TERMINAL_STATUSES = new Set(['COMPLETED', 'FAILED', 'CANCELLED', 'TERMINATED', 'TIMED_OUT', 'CONTINUED_AS_NEW']);
+export const TERMINAL_STATUSES = new Set([
+  'COMPLETED',
+  'FAILED',
+  'CANCELLED',
+  'TERMINATED',
+  'TIMED_OUT',
+  'CONTINUED_AS_NEW',
+]);

@@ -38,7 +38,7 @@ export async function permissionApprovalFlow(input: PermissionApprovalInput): Pr
       timeoutMs,
     });
     if (leaderResult.decision === 'reject') return;
-}
+  }
 
   if (input.location.toLowerCase() === 'tel-aviv') {
     const telAvivResult = await signatureStep({

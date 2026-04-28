@@ -20,19 +20,14 @@ import type { OutboxDocInput, SignalPayload } from './types';
 
 // Each step type gets its own activity name so Temporal's event history shows
 // "awaitRankApproval", "awaitSignature", etc. instead of "writeOutboxDocument" for every step.
-const {
-  awaitGroupApproval,
-  awaitRankApproval,
-  awaitSignature,
-  endpoint,
-  writeTimeout,
-} = proxyActivities<{
-  awaitGroupApproval: (doc: OutboxDocInput) => Promise<void>;
-  awaitRankApproval:  (doc: OutboxDocInput) => Promise<void>;
-  awaitSignature:     (doc: OutboxDocInput) => Promise<void>;
-  endpoint:           (doc: OutboxDocInput) => Promise<void>;
-  writeTimeout:       (doc: OutboxDocInput) => Promise<void>;
-}>({ startToCloseTimeout: '10 minutes' });
+const { awaitGroupApproval, awaitRankApproval, awaitSignature, endpoint, writeTimeout } =
+  proxyActivities<{
+    awaitGroupApproval: (doc: OutboxDocInput) => Promise<void>;
+    awaitRankApproval: (doc: OutboxDocInput) => Promise<void>;
+    awaitSignature: (doc: OutboxDocInput) => Promise<void>;
+    endpoint: (doc: OutboxDocInput) => Promise<void>;
+    writeTimeout: (doc: OutboxDocInput) => Promise<void>;
+  }>({ startToCloseTimeout: '10 minutes' });
 
 /**
  * The single signal name all step primitives wait on.

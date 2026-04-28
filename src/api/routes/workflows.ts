@@ -1,9 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
-import {
-  WorkflowExecutionAlreadyStartedError,
-  WorkflowNotFoundError,
-} from '@temporalio/client';
+import { WorkflowExecutionAlreadyStartedError, WorkflowNotFoundError } from '@temporalio/client';
 import { getWorkflowClient } from '../../shared/temporalClient';
 import { config } from '../../shared/config';
 import { buildErrorEnvelope } from '../../shared/errors';
@@ -47,10 +44,14 @@ workflowRouter.post('/:workflowType', async (req: Request, res: Response) => {
     res.status(201).json({ workflowId: handle.workflowId, runId: handle.firstExecutionRunId });
   } catch (err) {
     if (err instanceof WorkflowExecutionAlreadyStartedError) {
-      res.status(409).json(buildErrorEnvelope(
-        'WORKFLOW_ID_CONFLICT',
-        `Workflow with id "${body.workflowId}" is already running`,
-      ));
+      res
+        .status(409)
+        .json(
+          buildErrorEnvelope(
+            'WORKFLOW_ID_CONFLICT',
+            `Workflow with id "${body.workflowId}" is already running`
+          )
+        );
       return;
     }
     throw err;
@@ -172,9 +173,7 @@ workflowRouter.get('/', async (req: Request, res: Response) => {
     namespace: config.temporal.namespace,
     query: query.query ?? '',
     pageSize: query.pageSize,
-    nextPageToken: query.nextPageToken
-      ? Buffer.from(query.nextPageToken, 'base64')
-      : undefined,
+    nextPageToken: query.nextPageToken ? Buffer.from(query.nextPageToken, 'base64') : undefined,
   });
 
   res.json({
@@ -200,9 +199,7 @@ workflowRouter.get('/:workflowId/history', async (req: Request, res: Response) =
       namespace: config.temporal.namespace,
       execution: { workflowId, runId: query.runId },
       maximumPageSize: query.pageSize,
-      nextPageToken: query.nextPageToken
-        ? Buffer.from(query.nextPageToken, 'base64')
-        : undefined,
+      nextPageToken: query.nextPageToken ? Buffer.from(query.nextPageToken, 'base64') : undefined,
       historyEventFilterType: query.eventFilterType
         ? filterTypeMap[query.eventFilterType]
         : undefined,
