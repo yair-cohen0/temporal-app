@@ -24,9 +24,6 @@ export function param(req: Request, name: string): string {
   return req.params[name] as string;
 }
 
-// Raw gRPC service calls have callback/promise overloads that TypeScript cannot resolve cleanly.
-// We use `any` here to escape the overload ambiguity — the actual runtime behaviour is correct.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function grpcSvc(client: Awaited<ReturnType<typeof getWorkflowClient>>): any {
   return client.workflowService;
 }

@@ -3,7 +3,6 @@ import { randomUUID } from 'crypto';
 import {
   WorkflowExecutionAlreadyStartedError,
   WorkflowNotFoundError,
-  RetryPolicy,
 } from '@temporalio/client';
 import { getWorkflowClient } from '../../shared/temporalClient';
 import { config } from '../../shared/config';
@@ -30,22 +29,18 @@ workflowRouter.post('/:workflowType', async (req: Request, res: Response) => {
   const client = await getWorkflowClient();
 
   try {
-    // Duration fields (workflowRunTimeout etc.) accept string | number in the SDK, but the
-    // TypeScript type may be stricter (e.g. Temporal.Duration class). Cast via any to accept
-    // standard duration strings from HTTP callers.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handle = await client.start(workflowType, {
       workflowId: body.workflowId,
       taskQueue: body.taskQueue,
       args: body.args,
-      ...(body.searchAttributes ? { searchAttributes: body.searchAttributes as Record<string, string[]> } : {}),
-      ...(body.memo ? { memo: body.memo } : {}),
-      ...(body.workflowExecutionTimeout ? { workflowExecutionTimeout: body.workflowExecutionTimeout as any } : {}),
-      ...(body.workflowRunTimeout ? { workflowRunTimeout: body.workflowRunTimeout as any } : {}),
-      ...(body.workflowTaskTimeout ? { workflowTaskTimeout: body.workflowTaskTimeout as any } : {}),
-      ...(body.workflowIdReusePolicy ? { workflowIdReusePolicy: body.workflowIdReusePolicy as any } : {}),
-      ...(body.retryPolicy ? { retry: body.retryPolicy as RetryPolicy } : {}),
-      ...(body.cronSchedule ? { cronSchedule: body.cronSchedule } : {}),
+      searchAttributes: body.searchAttributes,
+      memo: body.memo,
+      workflowExecutionTimeout: body.workflowExecutionTimeout,
+      workflowRunTimeout: body.workflowRunTimeout,
+      workflowTaskTimeout: body.workflowTaskTimeout,
+      workflowIdReusePolicy: body.workflowIdReusePolicy,
+      retry: body.retryPolicy,
+      cronSchedule: body.cronSchedule,
     } as any);
 
     req.log?.info({ workflowId: handle.workflowId, workflowType }, 'Workflow started');
@@ -101,7 +96,6 @@ workflowRouter.post('/:workflowId/signals/:signalName', async (req: Request, res
   const handle = client.getHandle(workflowId, body.runId);
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await handle.signal(signalName, ...(body.args as any[]));
     req.log?.info({ workflowId, signalName }, 'Signal sent');
     res.status(204).send();
@@ -121,7 +115,6 @@ workflowRouter.post('/:workflowId/queries/:queryName', async (req: Request, res:
   const handle = client.getHandle(workflowId, body.runId);
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (handle as any).query(queryName, ...(body.args as any[]));
     res.json({ result });
   } catch (err) {

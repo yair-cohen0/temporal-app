@@ -12,7 +12,6 @@
     "dev:worker": "ts-node -r dotenv/config --project tsconfig.json src/worker/index.ts",
     "start:api": "node lib/api/index.js",
     "start:worker": "node lib/worker/index.js",
-    "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

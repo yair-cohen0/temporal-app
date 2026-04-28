@@ -1,13 +1,3 @@
-export type WorkflowStatus =
-  | 'RUNNING'
-  | 'COMPLETED'
-  | 'FAILED'
-  | 'CANCELLED'
-  | 'TERMINATED'
-  | 'TIMED_OUT'
-  | 'CONTINUED_AS_NEW'
-  | 'UNKNOWN';
-
 export interface WorkflowDescribeResponse {
   workflowId: string;
   runId: string;
@@ -80,8 +70,4 @@ export interface HistoryResponse {
 export interface HealthResponse {
   status: 'ok' | 'degraded';
   temporal: { connected: boolean; namespace: string };
-}
-
-export interface ApiError {
-  error: { code: string; message: string; details?: unknown };
 }

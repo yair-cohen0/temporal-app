@@ -28,7 +28,6 @@ export async function writeOutboxDocument(doc: OutboxDocInput): Promise<void> {
   };
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await collection.insertOne(fullDoc as any);
   } catch (err) {
     // Duplicate key on actionId means this doc was already written on a prior attempt.

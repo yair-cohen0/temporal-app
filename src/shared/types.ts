@@ -74,7 +74,7 @@ export type OutboxDoc =
 
 // Distributive Omit — preserves discriminant narrowing across all union members.
 // Standard Omit<A|B, K> would flatten the union and lose pairing between actionType and actionConfig.
-type DistributiveOmit<T, K extends keyof any> = T extends unknown ? Omit<T, K> : never;
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
 /** Input to writeOutboxDocument. The activity fills in _id, createdAt, and status. */
 export type OutboxDocInput = DistributiveOmit<

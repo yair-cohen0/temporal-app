@@ -2,6 +2,12 @@
 
 This file is for LLM agents working in this repo. It documents constraints, non-obvious decisions, and invariants that are not derivable from reading the code alone.
 
+## API Documentation Rule
+
+**Whenever an API route is added, removed, or its request/response shape changes, update `docs/api.md` to reflect the change.** This file is the source of truth for external developers and integrators. Treat it like code — keep it in sync with the implementation.
+
+---
+
 ## What this service is
 
 A generic Temporal-based workflow engine. It exposes a REST API for starting and managing Temporal workflow executions, and runs a Worker that executes workflow + activity code. This is one microservice in a larger system — do not assume knowledge of any consumer service, do not call external APIs from this codebase, and do not reference any specific consumer service by name.
