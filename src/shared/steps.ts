@@ -20,14 +20,26 @@ import type { OutboxDocInput, SignalPayload } from './types';
 
 // Each step type gets its own activity name so Temporal's event history shows
 // "awaitRankApproval", "awaitSignature", etc. instead of "writeOutboxDocument" for every step.
-const { awaitGroupApproval, awaitRankApproval, awaitSignature, endpoint, writeTimeout } =
-  proxyActivities<{
-    awaitGroupApproval: (doc: OutboxDocInput) => Promise<void>;
-    awaitRankApproval: (doc: OutboxDocInput) => Promise<void>;
-    awaitSignature: (doc: OutboxDocInput) => Promise<void>;
-    endpoint: (doc: OutboxDocInput) => Promise<void>;
-    writeTimeout: (doc: OutboxDocInput) => Promise<void>;
-  }>({ startToCloseTimeout: '10 minutes' });
+const {
+  awaitGroupApproval,
+  awaitRankApproval,
+  awaitLomda,
+  awaitSignature,
+  endpoint,
+  writeTimeout,
+} = proxyActivities<{
+  awaitGroupApproval: (doc: OutboxDocInput) => Promise<void>;
+  awaitRankApproval: (doc: OutboxDocInput) => Promise<void>;
+  awaitSignature: (doc: OutboxDocInput) => Promise<void>;
+  awaitLomda: (doc: OutboxDocInput) => Promise<void>;
+  endpoint: (doc: OutboxDocInput) => Promise<void>;
+  writeTimeout: (doc: OutboxDocInput) => Promise<void>;
+}>({
+  startToCloseTimeout: '10 minutes',
+  retry: {
+    maximumAttempts: 5,
+  },
+});
 
 /**
  * The single signal name all step primitives wait on.
@@ -186,6 +198,44 @@ export async function signatureStep(input: SignatureStepInput): Promise<SignalPa
       actionId: `${stepId}:timeout`,
       actionType: 'timeout',
       actionConfig: { stepId, originalActionType: 'awaitSignature' },
+    };
+    await writeTimeout(timeoutDoc);
+    throw ApplicationFailure.nonRetryable(`Step "${stepId}" timed out`, 'StepTimeoutError');
+  }
+
+  return receivedSignals.get(stepId)!;
+}
+
+export interface LomdaStepInput {
+  stepId: string;
+  timeoutMs: number;
+}
+
+export async function lomdaStep(input: LomdaStepInput): Promise<SignalPayload> {
+  const { stepId, timeoutMs } = input;
+  const { workflowId, runId } = workflowInfo();
+
+  ensureSignalHandler();
+
+  const doc: OutboxDocInput = {
+    workflowId,
+    runId,
+    actionId: stepId,
+    actionType: 'awaitLomda',
+    actionConfig: { stepId, timeoutMs },
+  };
+
+  await awaitLomda(doc);
+
+  const resolved = await condition(() => receivedSignals.has(stepId), timeoutMs);
+
+  if (!resolved) {
+    const timeoutDoc: OutboxDocInput = {
+      workflowId,
+      runId,
+      actionId: `${stepId}:timeout`,
+      actionType: 'timeout',
+      actionConfig: { stepId, originalActionType: 'awaitLomda' },
     };
     await writeTimeout(timeoutDoc);
     throw ApplicationFailure.nonRetryable(`Step "${stepId}" timed out`, 'StepTimeoutError');

@@ -45,6 +45,11 @@ export interface AwaitSignatureConfig {
   timeoutMs: number;
 }
 
+export interface AwaitLomdaConfig {
+  stepId: string;
+  timeoutMs: number;
+}
+
 export interface EndpointConfig {
   resource: unknown;
   message?: string;
@@ -53,7 +58,7 @@ export interface EndpointConfig {
 export interface TimeoutConfig {
   /** The stepId that timed out. */
   stepId: string;
-  originalActionType: 'awaitGroupApproval' | 'awaitRankApproval' | 'awaitSignature';
+  originalActionType: 'awaitGroupApproval' | 'awaitRankApproval' | 'awaitSignature' | 'awaitLomda';
 }
 
 // --- Discriminated union keyed on actionType ---
@@ -66,6 +71,7 @@ export type OutboxDoc =
   | (OutboxDocBase & { actionType: 'awaitGroupApproval'; actionConfig: AwaitGroupApprovalConfig })
   | (OutboxDocBase & { actionType: 'awaitRankApproval'; actionConfig: AwaitRankApprovalConfig })
   | (OutboxDocBase & { actionType: 'awaitSignature'; actionConfig: AwaitSignatureConfig })
+  | (OutboxDocBase & { actionType: 'awaitLomda'; actionConfig: AwaitLomdaConfig })
   | (OutboxDocBase & { actionType: 'endpoint'; actionConfig: EndpointConfig })
   | (OutboxDocBase & { actionType: 'timeout'; actionConfig: TimeoutConfig });
 

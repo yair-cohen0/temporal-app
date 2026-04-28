@@ -3,3 +3,4 @@
 // To add a new workflow: create a file in src/workflows/ and re-export it here.
 export * from './exampleApprovalFlow';
 export * from './permissionApprovalFlow';
+export * from './sourcesFlow';

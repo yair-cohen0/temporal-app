@@ -1,7 +1,7 @@
 import { workflowInfo } from '@temporalio/workflow';
 import { rankApproverStep, signatureStep } from '../shared/steps';
 
-const DEFAULT_TIMEOUT_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_TIMEOUT_MS = 30 * 24 * 60 * 60 * 1000; // One month
 
 export interface PermissionApprovalInput {
   clearance: number;

@@ -75,6 +75,7 @@ actionType values:
   awaitGroupApproval — waiting for any user in a group
   awaitRankApproval  — waiting for any user of a rank
   awaitSignature     — waiting for a specific user
+  awaitLomda         — waiting for Lomda approval
   endpoint           — fire-and-forget resource grant
   timeout            — a step timed out
 ```
@@ -114,7 +115,9 @@ try {
 
 ## Activity retry behavior
 
-Activity retry policy is left at Temporal's default: indefinite retries with exponential backoff starting at 1 second. This is why `writeOutboxDocument` MUST be idempotent (see above).
+**Updated:** Activities now use a retry policy with `maximumAttempts: 5` (set in `proxyActivities` config in `src/shared/steps.ts`). This is intentional — it limits retries to 5 attempts instead of Temporal's default (indefinite retries). 
+
+The idempotency mechanism (unique index on `actionId`) still applies and is essential because a retried insert after the 5th attempt fails would otherwise be lost.
 
 ## steps.ts — workflow sandbox constraints
 
@@ -186,11 +189,12 @@ Fix applied in `ui/src/App.tsx`: the workflow query uses the `query` argument pa
   workflowId: string,
   runId: string,
   actionId: string,
-  actionType: 'awaitGroupApproval' | 'awaitRankApproval' | 'awaitSignature' | 'endpoint' | 'timeout' | ...,
+  actionType: 'awaitGroupApproval' | 'awaitRankApproval' | 'awaitSignature' | 'awaitLomda' | 'endpoint' | 'timeout' | ...,
   actionConfig: {
     // awaitGroupApproval: { stepId, groupId, timeoutMs }
     // awaitRankApproval:  { stepId, rank, timeoutMs }
     // awaitSignature:     { stepId, userId, timeoutMs }
+    // awaitLomda:         { stepId, timeoutMs }
     // endpoint:           { resource, message? }
     // timeout:            { stepId, originalActionType }
   }

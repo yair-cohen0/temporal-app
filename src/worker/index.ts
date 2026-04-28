@@ -25,6 +25,7 @@ async function run(): Promise<void> {
       awaitGroupApproval: writeOutboxDocument,
       awaitRankApproval: writeOutboxDocument,
       awaitSignature: writeOutboxDocument,
+      awaitLomda: writeOutboxDocument,
       endpoint: writeOutboxDocument,
       writeTimeout: writeOutboxDocument,
     },
